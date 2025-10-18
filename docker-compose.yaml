@@ -1,0 +1,47 @@
+services:
+  frontend:
+    build: 
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: http://localhost:3001/api/todos
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    ports:
+      - 3001:3001
+    depends_on:
+      - db
+    environment:
+      DB_USER: my-user
+      DB_PASS: test
+      DB_NAME: todos
+      DB_HOST: db
+      FRONTEND_URL: http://localhost:3000
+      PORT: 3001
+
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_USER: my-user
+      POSTGRES_DB: todos
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+
+volumes:
+  db_data:
