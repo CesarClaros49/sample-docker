@@ -7,7 +7,7 @@ dotenv.config();
 const { Pool } = pg;
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL }));
+app.use(cors());
 app.use(express.json());
 
 const pool = new Pool({
@@ -16,6 +16,17 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
 });
+
+// ✅ Verificar conexión con la base de datos
+(async () => {
+  try {
+    const client = await pool.connect();
+    console.log("🟢 Conexión exitosa a la base de datos PostgreSQL");
+    client.release();
+  } catch (err) {
+    console.error("🔴 Error al conectar con la base de datos:", err.message);
+  }
+})();
 
 // Crear tabla si no existe
 pool.query(`

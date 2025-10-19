@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL;
+// const API_URL = import.meta.env.VITE_API_URL;
 
 type todo = {
   id: number;
@@ -15,16 +15,15 @@ function App() {
 
   // Obtener todos
   const fetchTodos = async () => {
-    const res = await fetch(`${API_URL}`);
+    const res = await fetch('/api/todos');
     const data = await res.json();
     setTodos(data);
   };
 
   // Crear nuevo todo
   const addTodo = async () => {
-    console.log(API_URL);
     if (!description.trim()) return;
-    const res = await fetch(`${API_URL}`, {
+    const res = await fetch('/api/todos', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description }),
@@ -36,7 +35,7 @@ function App() {
 
   // Cambiar estado (toggle)
   const toggleTodo = async (id: number, completed: boolean) => {
-    const res = await fetch(`${API_URL}/${id}`, {
+    const res = await fetch(`/api/todos/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: !completed }),
@@ -47,12 +46,12 @@ function App() {
 
   // Eliminar todo
   const deleteTodo = async (id: number) => {
-    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    await fetch(`/api/todos/${id}`, { method: "DELETE" });
     setTodos(todos.filter((t) => t.id !== id));
   };
 
   useEffect(() => {
-    console.log("Fetching todos from:", API_URL);
+    console.log("Fetching todos from:", '/api/todos');
     fetchTodos();
   }, []);
 

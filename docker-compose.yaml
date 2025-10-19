@@ -1,9 +1,8 @@
 services:
   frontend:
-    build: 
-      context: ./frontend
-      args:
-        VITE_BACKEND_URL: http://localhost:3001/api/todos
+    build: ./frontend
+    environment:
+      - VITE_API_URL=http://backend:3001
     ports:
       - 3000:3000
     depends_on:
@@ -20,11 +19,10 @@ services:
       DB_PASS: test
       DB_NAME: todos
       DB_HOST: db
-      FRONTEND_URL: http://localhost:3000
       PORT: 3001
 
   db:
-    image: postgres
+    image: postgres:18
     restart: always
     ports:
       - 5432:5432

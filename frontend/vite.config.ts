@@ -1,16 +1,30 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 
-// https://vite.dev/config/
+const backendUrl = process.env.VITE_API_URL || 'http://localhost:3001/api/todos';
+
 export default defineConfig({
-  base: "/",
   plugins: [react()],
   preview: {
     port: 3000,
-    strictPort: true,
+    host: true,
+    proxy:  {
+      '/api/todos': {
+        target: backendUrl,
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
   server: {
+    host: true,
     port: 3000,
-    strictPort: true,
+    proxy: {
+      '/api/todos': {
+        target: backendUrl,
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 })
