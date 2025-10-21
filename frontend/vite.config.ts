@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   preview: {
     port: 3000,
-    host: true,
+    allowedHosts: [".sslip.io"],
     proxy:  {
       '/api/todos': {
         target: backendUrl,
