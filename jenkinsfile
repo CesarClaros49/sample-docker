@@ -1,0 +1,61 @@
+pipeline {
+  agent {
+    kubernetes {
+      inheritFrom 'agente-prueba'
+    }
+  }
+
+  environment {
+    DOCKER_IMAGE_BACKEND = 'clarozzz/k8s-backend:latest'
+    DOCKER_IMAGE_FRONTEND = 'clarozzz/k8s-frontend:latest'
+  }
+
+  stages {
+    stage('Clone repository') {
+      steps {
+        git 'https://github.com/CesarClaros49/sample-docker'
+      }
+    }
+
+    stage('Login to DockerHub') {
+      steps {
+        container('docker') {
+            withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+            }
+        }
+      }
+    }
+
+    stage('Backend - Build and push Docker') {
+      steps {
+        dir('backend') {
+            container('docker'){
+                sh "docker build -t $DOCKER_IMAGE_BACKEND ."
+                sh "docker push $DOCKER_IMAGE_BACKEND"
+            }
+        }
+      }
+    }
+
+    stage('Frontend - Build and push Docker') {
+      steps {
+        dir('frontend') {
+            container('docker'){
+                sh "docker build -t $DOCKER_IMAGE_FRONTEND ."
+                sh "docker push $DOCKER_IMAGE_FRONTEND"
+            }
+        }
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        container('kubectl') {
+            sh "kubectl apply -f backend.yaml -n default"
+            sh "kubectl apply -f frontend.yaml -n default"
+        }
+      }
+    }
+  }
+}
