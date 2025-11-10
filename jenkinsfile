@@ -20,7 +20,7 @@ pipeline {
         script {
           git 'https://github.com/CesarClaros49/sample-docker'
           dir('k8s-yamls') {
-            git credentialsId: 'github-creds', url: "${YAML_REPO}"
+            git branch: 'main', credentialsId: 'github-creds', url: "${YAML_REPO}"
           }
         }
       }
@@ -86,3 +86,4 @@ pipeline {
     }
   }
 }
+
