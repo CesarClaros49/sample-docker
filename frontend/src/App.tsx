@@ -57,7 +57,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>📝 To-Do List</h1>
+      <h1>📝 Tareas Pendientes</h1>
       <div className="todo-input">
         <input
           type="text"
