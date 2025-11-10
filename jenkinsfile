@@ -64,29 +64,45 @@ pipeline {
 
 stage('Update k8s manifests repo') {
   steps {
-      dir('k8s-yamls') {
-        withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-          sh """
-            git config user.email "jenkins@ci.local"
-            git config user.name "Jenkins CI"
+    dir('k8s-yamls') {
+      withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+        sh """
+          git config user.email "jenkins@ci.local"
+          git config user.name "Jenkins CI"
 
-            sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
-            sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
+          # 🔹 Actualiza las imágenes
+          sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
+          sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
 
-            git add .
-            git commit -m "Update images to tag ${IMAGE_TAG}" || echo "No changes to commit"
+          # 🔹 Actualiza (o agrega) la anotación kubernetes.io/change-cause
+          # Si ya existe, la reemplaza; si no, la agrega debajo de "annotations:".
+          for f in *.yaml; do
+            if grep -q "kubernetes.io/change-cause" "$f"; then
+              sed -i "s|kubernetes.io/change-cause:.*|kubernetes.io/change-cause: \\"Updated images to tag ${IMAGE_TAG} by Jenkins build #${BUILD_NUMBER}\\"|g" "$f"
+            elif grep -q "annotations:" "$f"; then
+              sed -i "/annotations:/a\ \ \ \ kubernetes.io/change-cause: \\"Updated images to tag ${IMAGE_TAG} by Jenkins build #${BUILD_NUMBER}\\"" "$f"
+            else
+              # Si el YAML no tiene annotations, las agrega al metadata.
+              sed -i "/metadata:/a\ \ annotations:\\n\ \ \ \ kubernetes.io/change-cause: \\"Updated images to tag ${IMAGE_TAG} by Jenkins build #${BUILD_NUMBER}\\"" "$f"
+            fi
+          done
 
-            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
-            git push origin main
-          """
-        }
+          git add .
+          git commit -m "Update images and change-cause to tag ${IMAGE_TAG}" || echo "No changes to commit"
+
+          git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
+          git push origin main
+        """
       }
+    }
   }
 }
 
 
+
   }
 }
+
 
 
 
