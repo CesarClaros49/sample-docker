@@ -66,19 +66,29 @@ stage('Update k8s manifests repo') {
   steps {
     dir('k8s-yamls') {
       withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-          sh """
-            git config user.email "jenkins@ci.local"
-            git config user.name "Jenkins CI"
+sh """
+  git config user.email "jenkins@ci.local"
+  git config user.name "Jenkins CI"
 
-            sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
-            sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
+  # Actualizar imágenes
+  sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
+  sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
 
-            git add .
-            git commit -m "Update images to tag ${IMAGE_TAG}" || echo "No changes to commit"
+  # Crear la anotación con fecha y mensaje del commit
+  DATE=\$(date '+%Y-%m-%d %H:%M:%S')
+  CHANGE_CAUSE="Update images to tag ${IMAGE_TAG} on \$DATE"
 
-            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
-            git push origin main
-          """
+  # Reemplazar la anotación en los YAML
+  sed -i "s|kubernetes.io/change-cause: .*|kubernetes.io/change-cause: \\\"\$CHANGE_CAUSE\\\"|g" *.yaml
+
+  # Commit y push
+  git add .
+  git commit -m "Update images to tag ${IMAGE_TAG}" || echo "No changes to commit"
+
+  git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
+  git push origin main
+"""
+
 
       }
     }
@@ -89,6 +99,7 @@ stage('Update k8s manifests repo') {
 
   }
 }
+
 
 
 
