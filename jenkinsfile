@@ -62,10 +62,11 @@ pipeline {
       }
     }
 
-    stage('Update k8s manifests repo') {
+stage('Update k8s manifests repo') {
+  agent none
   steps {
-    dir('k8s-yamls') {
-      container('docker') {
+    container('docker') {
+      dir('k8s-yamls') {
         withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
           sh """
             git config user.email "jenkins@ci.local"
@@ -86,8 +87,10 @@ pipeline {
   }
 }
 
+
   }
 }
+
 
 
 
