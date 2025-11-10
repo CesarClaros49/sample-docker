@@ -6,54 +6,81 @@ pipeline {
   }
 
   environment {
-    DOCKER_IMAGE_BACKEND = 'clarozzz/k8s-backend:latest'
-    DOCKER_IMAGE_FRONTEND = 'clarozzz/k8s-frontend:latest'
+    REGISTRY = 'clarozzz'
+    REPO_BACKEND = 'k8s-backend'
+    REPO_FRONTEND = 'k8s-frontend'
+    IMAGE_TAG = "${env.BUILD_NUMBER}" // o usa `git rev-parse --short HEAD`
+    YAML_REPO = 'https://github.com/CesarClaros49/k8s-manifests'
   }
 
   stages {
-    stage('Clone repository') {
+
+    stage('Clone repositories') {
       steps {
-        git 'https://github.com/CesarClaros49/sample-docker'
+        script {
+          git 'https://github.com/CesarClaros49/sample-docker'
+          dir('k8s-yamls') {
+            git credentialsId: 'github-creds', url: "${YAML_REPO}"
+          }
+        }
       }
     }
 
     stage('Login to DockerHub') {
       steps {
         container('docker') {
-            withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-            }
+          withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+          }
         }
       }
     }
 
-    stage('Backend - Build and push Docker') {
+    stage('Backend - Build & Push') {
       steps {
         dir('backend') {
-            container('docker'){
-                sh "docker build -t $DOCKER_IMAGE_BACKEND ."
-                sh "docker push $DOCKER_IMAGE_BACKEND"
-            }
+          container('docker') {
+            sh """
+              docker build -t $REGISTRY/$REPO_BACKEND:$IMAGE_TAG .
+              docker push $REGISTRY/$REPO_BACKEND:$IMAGE_TAG
+            """
+          }
         }
       }
     }
 
-    stage('Frontend - Build and push Docker') {
+    stage('Frontend - Build & Push') {
       steps {
         dir('frontend') {
-            container('docker'){
-                sh "docker build -t $DOCKER_IMAGE_FRONTEND ."
-                sh "docker push $DOCKER_IMAGE_FRONTEND"
-            }
+          container('docker') {
+            sh """
+              docker build -t $REGISTRY/$REPO_FRONTEND:$IMAGE_TAG .
+              docker push $REGISTRY/$REPO_FRONTEND:$IMAGE_TAG
+            """
+          }
         }
       }
     }
 
-    stage('Deploy to Kubernetes') {
+    stage('Update k8s manifests repo') {
       steps {
-        container('kubectl') {
-            sh "kubectl apply -f backend.yaml -n default"
-            sh "kubectl apply -f frontend.yaml -n default"
+        dir('k8s-yamls') {
+          script {
+            // reemplaza la versión en los YAML
+            sh """
+              sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
+              sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
+            """
+
+            // commit y push de los cambios
+            sh """
+              git config user.email "jenkins@ci.local"
+              git config user.name "Jenkins CI"
+              git add .
+              git commit -m "Update images to tag ${IMAGE_TAG}"
+              git push origin main
+            """
+          }
         }
       }
     }
