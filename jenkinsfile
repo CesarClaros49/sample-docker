@@ -63,9 +63,7 @@ pipeline {
     }
 
 stage('Update k8s manifests repo') {
-  agent none
   steps {
-    container('docker') {
       dir('k8s-yamls') {
         withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
           sh """
@@ -83,13 +81,13 @@ stage('Update k8s manifests repo') {
           """
         }
       }
-    }
   }
 }
 
 
   }
 }
+
 
 
 
