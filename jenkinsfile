@@ -78,7 +78,7 @@ pipeline {
               sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
               sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
 
-              sed -i '/metadata:/a\  annotations:\n    argocd.argoproj.io/compare-options: IgnoreExtraneous' *.yaml
+              sed -i '/metadata:/a\\  annotations:\\n    argocd.argoproj.io/compare-options: IgnoreExtraneous' *.yaml
 
               # Obtenemos el mensaje del commit desde la variable que asignamos en el stage Clone repositories
               COMMIT_MSG="${env.SAMPLE_COMMIT_MSG}"
@@ -118,6 +118,7 @@ pipeline {
 
   }
 }
+
 
 
 
