@@ -78,7 +78,15 @@ pipeline {
               sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
               sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
 
-              sed -i '/metadata:/a\\  annotations:\\n    argocd.argoproj.io/compare-options: IgnoreExtraneous' *.yaml
+              for file in *.yaml; do
+                  if grep -q "argocd.argoproj.io/compare-options" "\$file"; then
+                      # Si existe, la reemplazamos (asegurando la indentación)
+                      sed -i "s|^\\(\\s*\\)argocd.argoproj.io/compare-options: .*|\\1argocd.argoproj.io/compare-options: IgnoreExtraneous|g" "\$file"
+                  else
+                      # Si NO existe, la agregamos *después* de la línea de Change Cause (aseguramos 4 espacios)
+                      sed -i '/kubernetes.io\\/change-cause:/a\\    argocd.argoproj.io/compare-options: IgnoreExtraneous' "\$file"
+                  fi
+              done
 
               # Obtenemos el mensaje del commit desde la variable que asignamos en el stage Clone repositories
               COMMIT_MSG="${env.SAMPLE_COMMIT_MSG}"
@@ -118,6 +126,7 @@ pipeline {
 
   }
 }
+
 
 
 
