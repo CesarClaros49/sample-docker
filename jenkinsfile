@@ -93,7 +93,7 @@ pipeline {
 
               git add .
               
-              git commit -m "Source repository commit message: ${env.SAMPLE_COMMIT_MSG}" || echo "No changes to commit"
+              git commit -m "Src commit msg: ${env.SAMPLE_COMMIT_MSG}" || echo "No changes to commit"
 
               git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
               git push origin main
@@ -105,4 +105,5 @@ pipeline {
 
   }
 }
+
 
