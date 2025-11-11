@@ -19,6 +19,10 @@ pipeline {
       steps {
         script {
           git 'https://github.com/CesarClaros49/sample-docker'
+          
+          // Capturar el mensaje del último commit
+          env.SAMPLE_COMMIT_MSG = sh(returnStdout: true, script: 'git log -1 --pretty=%s').trim()
+
           dir('k8s-yamls') {
             git branch: 'main', url: "${YAML_REPO}"
           }
@@ -62,51 +66,42 @@ pipeline {
       }
     }
 
-stage('Update k8s manifests repo') {
-  steps {
-    dir('k8s-yamls') {
-      withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-sh """
-  git config user.email "jenkins@ci.local"
-  git config user.name "Jenkins CI"
+    stage('Update k8s manifests repo') {
+      steps {
+        dir('k8s-yamls') {
+          withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+            sh """
+              git config user.email "jenkins@ci.local"
+              git config user.name "Jenkins CI"
 
-  # Actualizar imágenes
-  sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
-  sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
+              # Actualizar imágenes
+              sed -i 's|clarozzz/k8s-backend:.*|clarozzz/k8s-backend:${IMAGE_TAG}|g' *.yaml
+              sed -i 's|clarozzz/k8s-frontend:.*|clarozzz/k8s-frontend:${IMAGE_TAG}|g' *.yaml
 
-  # Crear la anotación con fecha y mensaje del commit
-  DATE=\$(date '+%Y-%m-%d %H:%M:%S')
-  CHANGE_CAUSE="Update images to tag ${IMAGE_TAG} on \$DATE"
+              # Obtenemos el mensaje del commit desde la variable que asignamos en el stage Clone repositories
+              COMMIT_MSG="${env.SAMPLE_COMMIT_MSG}"
 
-  # Reemplazar la anotación en los YAML
-  sed -i "s|kubernetes.io/change-cause: .*|kubernetes.io/change-cause: \\\"\$CHANGE_CAUSE\\\"|g" *.yaml
+              # Escapamos las comillas (") del mensaje para que no rompan la sintaxis de la anotación YAML.
+              ESCAPED_COMMIT_MSG=\$(echo "\$COMMIT_MSG" | sed 's/"/\\"/g')
+              
+              # Asignamos el mensaje escapado a CHANGE_CAUSE y le agregamos la fecha
+              DATE=\$(date '+%Y-%m-%d %H:%M:%S')
+              CHANGE_CAUSE="\$ESCAPED_COMMIT_MSG on \$DATE"
 
-  # Commit y push
-  git add .
-  git commit -m "Update images to tag ${IMAGE_TAG}" || echo "No changes to commit"
+              # Reemplazar la anotación en los YAML
+              sed -i "s|kubernetes.io/change-cause: .*|kubernetes.io/change-cause: \\\"\$CHANGE_CAUSE\\\"|g" *.yaml
 
-  git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
-  git push origin main
-"""
+              git add .
+              
+              git commit -m "Update images to tag ${IMAGE_TAG}. Trigger: ${env.SAMPLE_COMMIT_MSG}" || echo "No changes to commit"
 
-
+              git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/CesarClaros49/k8s-manifests.git
+              git push origin main
+            """
+          }
+        }
       }
     }
-  }
-}
-
-
 
   }
 }
-
-
-
-
-
-
-
-
-
-
-
