@@ -103,19 +103,9 @@ pipeline {
       }
     }
 
-    stage('Deploy to Kubernetes') {
-      steps {
-        dir('k8s-yamls') {
-          container('kubectl') {
-              sh "kubectl apply -f backend.yaml -n default"
-              sh "kubectl apply -f frontend.yaml -n default"
-          }
-        }
-      }
-    }
-
   }
 }
+
 
 
 
